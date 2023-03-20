@@ -33,6 +33,7 @@ import deepspeed
 from deepspeed.runtime.utils import see_memory_usage
 import os
 
+from megatron.text_generation_utils import generate_and_write_samples_unconditional
 try:
     from torch.distributed.elastic.multiprocessing.errors import record
 except ImportError:
@@ -53,7 +54,7 @@ def model_provider(pre_process=True, post_process=True):
                              config_dict_or_path=args.deepspeed_config,
                              enabled=args.zero_stage == 3,
                              mpu=mpu):
-        if args.deepspeed:
+        if args.deepspeed:  ##True
             args.pretrain_causal_attention = True
             model = GPTModelPipe(
                 num_tokentypes=0,
@@ -185,7 +186,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
     print_rank_0('> building train, validation, and test datasets for GPT ...')
     # Option 1 of data loading using --data-path
 
-    if args.data_path:
+    if args.data_path: ## ['data/meg-gpt2-oscar-en-10k_text_document']
         train_ds, valid_ds, test_ds = build_train_valid_test_datasets(
             data_prefix=args.data_path,
             data_impl=args.data_impl,
@@ -220,8 +221,6 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
                                         (not args.mmap_warmup),
                                         train_valid_test=s)
                 eval(f"{s}_ds").append(d)
-    else:
-        raise NotImplementedError("No dataloading argument passed")
 
     print_rank_0("> finished creating GPT datasets ...")
     return train_ds, valid_ds, test_ds
@@ -233,3 +232,82 @@ def main():
 
 if __name__ == "__main__":
     main()
+    print_rank_0("finish!!!!!!!!!!!!!!!!!!!!")
+
+
+
+
+#Namespace(num_layers=2, hidden_size=8, ffn_hidden_size=32, num_attention_heads=2, kv_channels=4, max_position_embeddings=512,\
+#  make_vocab_size_divisible_by=128, pad_vocab_size_to=None, layernorm_epsilon=1e-05, \
+# sync_tp_duplicated_parameters=False, \
+# apply_residual_connection_post_layernorm=False, \
+# embed_layernorm=True, openai_gelu=False, onnx_safe=None, bert_binary_head=True,\
+#  position_embedding_type=<PositionEmbeddingType.absolute: 2>, \
+# glu_activation=None, kill_switch_path='/tmp/kill-switch', \
+# log_level=None, log_level_replica=None, attention_dropout=0.1, \
+# hidden_dropout=0.1, weight_decay=0.1, clip_grad=1.0, adam_beta1=0.9, adam_beta2=0.95, \
+# adam_eps=1e-08, sgd_momentum=0.9, micro_batch_size=1, global_batch_size=16,\
+#  rampup_batch_size=['2', '2', '1_000'], checkpoint_activations=True, \
+# distribute_checkpointed_activations=False, checkpoint_num_layers=1, \
+# train_iters=None, train_samples=10000, train_tokens=None, log_interval=10, \
+# exit_interval=100, exit_duration_in_mins=None, tensorboard_dir='output_dir/tensorboard',\
+#  masked_softmax_fusion=True, bias_gelu_fusion=True, bias_dropout_fusion=True, \
+# optimizer='adam', use_bnb_optimizer=False, dataloader_type='single', \
+# cpu_optimizer=False, cpu_torch_adam=False, codecarbon_dir=None, \
+# eval_only=None, skip_train_iteration_range=None, inference=False, \
+# abort_on_unmet_fused_kernel_constraints=False, pp_partition_method=None, \
+# seed=42, init_method_std=0.02, init_method_xavier_uniform=False, lr=0.0001, \
+# lr_decay_style='cosine', lr_decay_iters=None, lr_decay_samples=12,\
+#  lr_decay_tokens=None, lr_warmup_fraction=None, lr_warmup_iters=0, \
+# lr_warmup_samples=5, min_lr=1e-06, override_lr_scheduler=False, \
+# use_checkpoint_lr_scheduler=False, universal_checkpoint=False, \
+# save='checkpoints/gpt2', save_interval=50, no_save_optim=None,\
+#  no_save_rng=None, load='checkpoints/gpt2', no_load_optim=None, \
+# no_load_rng=None, finetune=False, fp16=True, bf16=False, loss_scale=None, \
+# initial_loss_scale=4294967296, min_loss_scale=1.0, loss_scale_window=1000, \
+# hysteresis=2, fp32_residual_connection=False, apply_query_key_layer_scaling=True, \
+# attention_softmax_in_fp32=False, accumulate_allreduce_grads_in_fp32=False,\
+#  fp16_lm_cross_entropy=False, tensor_model_parallel_size=2, pipeline_model_parallel_size=1,\
+#  num_layers_per_virtual_pipeline_stage=None, distributed_backend='nccl',\
+#  DDP_impl='local', use_contiguous_buffers_in_ddp=False, \
+# scatter_gather_tensors_in_pipeline=True, local_rank=0, lazy_mpu_init=None, \
+# use_cpu_initialization=None, eval_iters=10, eval_interval=100, \
+# data_path=['data/meg-gpt2-oscar-en-10k_text_document'], split='969, 30, 1', \
+# train_weighted_split_paths=None, valid_weighted_split_paths=None, \
+# test_weighted_split_paths=None, train_weighted_split_paths_path=None, \
+# valid_weighted_split_paths_path=None, test_weighted_split_paths_path=None,\
+#  log_path=None, vocab_file='data/gpt2-vocab.json', merge_file='data/gpt2-merges.txt', \
+# vocab_extra_ids=0, seq_length=512, encoder_seq_length=512, decoder_seq_length=None, \
+# retriever_seq_length=256, sample_rate=1.0, mask_prob=0.15, short_seq_prob=0.1,\
+#  mmap_warmup=False, num_workers=2, valid_num_workers=2, tokenizer_type='GPT2BPETokenizer',\
+#  tokenizer_name_or_path=None, data_impl='infer', reset_position_ids=False,\
+#  reset_attention_mask=False, eod_mask_loss=False, loss_on_targets_only=False,\
+# reweight_loss_based_on_position_frequency=False, noise_density=None, \
+# mean_noise_span_length=None, adlr_autoresume=False, adlr_autoresume_interval=1000, \
+# ict_head_size=None, biencoder_projection_dim=0, biencoder_shared_query_context_model=False, \
+# ict_load=None, bert_load=None, titles_data_path=None, query_in_block_prob=0.1, \
+# use_one_sent_docs=False, evidence_data_path=None, retriever_report_topk_accuracies=[], \
+# retriever_score_scaling=False, block_data_path=None, embedding_path=None, \
+# indexer_batch_size=128, indexer_log_interval=1000, num_classes=1000, \
+# img_dim=224, num_channels=3, patch_dim=16, log_params_norm=False,\
+#  log_num_zeros_in_grad=False, tensorboard_log_interval=1, tensorboard_queue_size=5, \
+# log_timers_to_tensorboard=True, log_batch_size_to_tensorboard=True, \
+# log_learning_rate_to_tensorboard=True, log_loss_scale_to_tensorboard=True, \
+# log_validation_ppl_to_tensorboard=True, zero_stage=1, zero_reduce_scatter=False,\
+#  zero_contigious_gradients=False, zero_reduce_bucket_size=0.0, \
+# zero_allgather_bucket_size=0.0, remote_device='none', use_pin_memory=False, \
+# scattered_embeddings=False, split_transformers=False, memory_centric_tiled_linear=False, \
+# tile_factor=1, deepspeed_activation_checkpointing=True, partition_activations=True, \
+# contigious_checkpointing=False, checkpoint_in_cpu=False, synchronize_each_layer=False,\
+#  profile_backward=False, deepspeed=True, deepspeed_config='./ds_config.json', \
+# deepscale=False, deepscale_config=None, deepspeed_mpi=False, rank=0, world_size=2, \
+# data_parallel_size=1, valid_weighted_split_names=None, valid_weighted_split_weights=None,\
+#  valid_weighted_split_splits=None, test_weighted_split_names=None, \
+# test_weighted_split_weights=None, test_weighted_split_splits=None,\
+#  virtual_pipeline_model_parallel_size=None, params_dtype=torch.float16, \
+# consumed_train_samples=0, consumed_valid_samples=0, consumed_train_tokens=0, \
+# gigaflos_no_embeds=0, curriculum_learning=False, padded_vocab_size=50432, \
+# deepspeed_configuration={'train_micro_batch_size_per_gpu': 1, 'train_batch_size': 16, \
+# 'gradient_clipping': 1.0, 'zero_optimization': {'stage': 1}, \
+# 'fp16': {'enabled': True, 'loss_scale': 0, 'loss_scale_window': 500, 'hysteresis': 2, 'min_loss_scale': 1, 'initial_scale_power': 12}, \
+# 'steps_per_print': 2000, 'wall_clock_breakdown': False})

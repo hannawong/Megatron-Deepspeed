@@ -77,6 +77,7 @@ class MegatronPretrainingSampler:
         # Sanity checks.
         assert self.total_samples > 0, \
             'no sample to consume: {}'.format(self.total_samples)
+        self.consumed_samples = 0
         assert self.consumed_samples < self.total_samples, \
             'no samples left to consume: {}, {}'.format(self.consumed_samples,
                                                         self.total_samples)

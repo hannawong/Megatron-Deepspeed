@@ -12,6 +12,10 @@ tmp/
 *.py[cod]
 *.class
 
+checkpoints/*
+bloom_megatron/*
+bloom/*
+
 # C extensions
 *.so
 
@@ -60,6 +64,11 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+output_dir/
+bloom_megatron/
+bloom/
+checkpoints/
+data/
 
 # Translations
 *.mo

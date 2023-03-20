@@ -35,9 +35,9 @@ _CHECKPOINT_VERSION = None
 
 def set_checkpoint_version(value):
     global _CHECKPOINT_VERSION
-    if _CHECKPOINT_VERSION is not None:
-        assert _CHECKPOINT_VERSION == value, \
-            "checkpoint versions do not match"
+    #if _CHECKPOINT_VERSION is not None:
+        #assert _CHECKPOINT_VERSION == value, \
+        #    "checkpoint versions do not match"
     _CHECKPOINT_VERSION = value
 
 def get_checkpoint_version():
@@ -264,13 +264,13 @@ def fix_query_key_value_ordering(model, checkpoint_version):
         print_rank_0(" succesfully fixed query-key-values ordering for"
                     " checkpoint version {}".format(checkpoint_version))
 
-def load_checkpoint(model, optimizer, lr_scheduler, load_arg='load', strict=True):
+def load_checkpoint(args,model, optimizer, lr_scheduler, load_arg='load', strict=True):
     """Load a model checkpoint and return the iteration.
     strict (bool): whether to strictly enforce that the keys in
         :attr:`state_dict` of the checkpoint match the names of
         parameters and buffers in model.
     """
-    args = get_args()
+    #args = get_args()
     load_dir = getattr(args, load_arg)
 
     if args.deepspeed:

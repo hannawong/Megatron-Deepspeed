@@ -1,0 +1,10 @@
+
+Context:请把这句话翻译成中文：BLOOM is a large langauge model. 
+
+
+Megatron-LM:BLOOM是巨大的，多义的词汇。</s>
+
+Context:Hi, How are you?
+
+
+Megatron-LM:How is your mother?</s>

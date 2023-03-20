@@ -205,9 +205,8 @@ class GPTModelPipe(PipelineModule,MegatronModule):
         attn_mask_type: AttnMaskType = AttnMaskType.causal
     ):
         args = get_args()
-        self.parallel_output = parallel_output
-
-        init_method = init_method_normal(args.init_method_std)
+        self.parallel_output = parallel_output ##True
+        init_method = init_method_normal(args.init_method_std) ## 0.02,torch.nn.init.normal_(tensor, mean=0.0, std=sigma)
 
         self.specs = []
 
@@ -228,17 +227,17 @@ class GPTModelPipe(PipelineModule,MegatronModule):
                                         args.padded_vocab_size,
                                         args.hidden_dropout,
                                         init_method=init_method,
-                                        num_tokentypes=num_tokentypes,
+                                        num_tokentypes=num_tokentypes, ##0
                                         tied_weight_attr='word_embeddings_weight'))
 
-        if args.fp32_residual_connection:
+        if args.fp32_residual_connection: ##False
             if getattr(args, 'pretrain_causal_attention', False):
                 self.specs.append(lambda x: x.transpose(0, 1).contiguous().float())
             else:
                 # EmbeddingPipe returns attention mask as well
                 self.specs.append(lambda x: (x[0].transpose(0, 1).contiguous().float(), *x[1:]))
         else:
-            if getattr(args, 'pretrain_causal_attention', False):
+            if getattr(args, 'pretrain_causal_attention', False): ##True
                 self.specs.append(lambda x: x.transpose(0, 1).contiguous())
             else:
                 # EmbeddingPipe returns attention mask as well
@@ -309,7 +308,7 @@ class GPTModelPipe(PipelineModule,MegatronModule):
         # transformer layer
         if args.pp_partition_method is not None:
             partition_method = args.pp_partition_method
-        else:
+        else: ##None
             partition_method = 'type:transformer'
 
         super().__init__(layers=self.specs,
@@ -317,3 +316,20 @@ class GPTModelPipe(PipelineModule,MegatronModule):
                          topology=topo,
                          activation_checkpoint_interval=interval,
                          partition_method=partition_method)
+
+
+
+
+'''
+[default0]:stage=0 layers=9
+[default0]:     0: _to_float16
+[default0]:     1: EmbeddingPipe
+[default0]:     2: <lambda>
+[default0]:     3: ParallelTransformerLayerPipe
+[default0]:     4: ParallelTransformerLayerPipe
+[default0]:     5: undo
+[default0]:     6: MixedFusedLayerNorm
+[default0]:     7: EmbeddingPipe
+[default0]:     8: float16_to_fp32
+[default0]:  loss: CrossEntropy
+'''

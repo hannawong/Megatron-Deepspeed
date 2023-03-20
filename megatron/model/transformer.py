@@ -712,6 +712,10 @@ class ParallelTransformer(MegatronModule):
                 args.hidden_size,
                 eps=args.layernorm_epsilon)
 
+        #self.input_layernorm = LayerNorm(
+        #        args.hidden_size,
+        #        eps=args.layernorm_epsilon)
+
         if deepspeed.checkpointing.is_configured():
             global get_cuda_rng_tracker, checkpoint
             get_cuda_rng_tracker = deepspeed.checkpointing.get_cuda_rng_tracker
@@ -759,6 +763,7 @@ class ParallelTransformer(MegatronModule):
     def forward(self, hidden_states, attention_mask, layer_past=None,
                 get_key_value=False, encoder_output=None, enc_dec_attn_mask=None):
 
+
         # Checks.
         if layer_past is not None:
             assert get_key_value, \
@@ -781,6 +786,8 @@ class ParallelTransformer(MegatronModule):
             # See set_input_tensor()
             hidden_states = self.input_tensor
 
+        #hidden_states = self.input_layernorm(hidden_states)
+        
         if encoder_output is not None:
              encoder_output = encoder_output.transpose(0, 1).contiguous()
 

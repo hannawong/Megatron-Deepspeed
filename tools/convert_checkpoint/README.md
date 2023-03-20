@@ -68,8 +68,8 @@ Alternatively, you can convert first from Megatron-DeepSpeed to Megatron and the
 # 1. Megatron-DeepSpeed to Megatron
 cd /hf/Megatron-DeepSpeed-bigscience
 python tools/convert_checkpoint/deepspeed_to_megatron.py --target_tp 1 --target_pp 1 \
---input_folder /path/to/Megatron-Deepspeed/checkpoint/global_step97500 \
---output_folder /path/to/Megatron/checkpoint
+--input_folder /data1/jiayu_xiao/project/wzh/Megatron-DeepSpeed/bloom \
+--output_folder /data1/jiayu_xiao/project/wzh/Megatron-DeepSpeed/bloom_megatron
 
 # 2. Megatron to HF Transformers
 cd /hf/transformers

@@ -128,6 +128,7 @@ class Embedding(MegatronModule):
         args = get_args()
 
         # Word embeddings (parallel).
+        vocab_size = 250880
         self.word_embeddings = mpu.VocabParallelEmbedding(
             vocab_size, self.hidden_size,
             init_method=self.init_method)
@@ -232,6 +233,10 @@ class Embedding(MegatronModule):
                 if 'word_embeddings' in key:
                     state_dict_[key.split('word_embeddings.')[1]] \
                         = state_dict[key]
+        state_dict_["weight"] = state_dict["weight"]
+        state_dict_["norm.weight"] = state_dict["norm.weight"]
+        state_dict_["norm.bias"] = state_dict["norm.bias"]
+        print(state_dict_)
         self.word_embeddings.load_state_dict(state_dict_, strict=strict)
 
         # Position embedding.
@@ -487,6 +492,7 @@ class TransformerLanguageModel(MegatronModule):
             else:
                 state_dict_self_attention[key] = state_dict_[key]
         state_dict_ = state_dict_self_attention
+        print(state_dict_)
 
         self.encoder.load_state_dict(state_dict_, strict=strict)
 

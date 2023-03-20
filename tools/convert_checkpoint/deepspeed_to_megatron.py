@@ -4,7 +4,7 @@ import argparse
 import os
 import torch
 from collections import OrderedDict
-from .deepspeed_checkpoint import ARGS_KEY, DeepSpeedCheckpoint
+from inspect_deepspeed_checkpoint import  DeepSpeedCheckpoint
 
 MODEL_KEY = 'model'
 ARGS_KEY = 'args'
@@ -90,7 +90,9 @@ def _save_checkpoint(file_path, chkpt_sd):
 def _renest_sd(sd):
     new_sd = OrderedDict()
     for key, value in sd.items():
-        a, b = key.split('.')
+        print(key)
+        a = key.split('.')[0]
+        b = key.split(".")[1]
         new_sd[a] = {b: value}
     return new_sd
 
@@ -120,6 +122,8 @@ def _create_rank_checkpoint(ds_checkpoint,
                     new_fields = fields[1:]
                     new_key = '.'.join(new_fields)
                     meg_embedding_for_head_sd[new_key] = value
+                    meg_embedding_sd[new_key] = value
+                    
 
             final_norm_sd = ds_checkpoint.get_final_norm_state(tp_index)
             new_final_norm_sd = {
@@ -139,6 +143,8 @@ def _create_rank_checkpoint(ds_checkpoint,
     if pp_index == ds_checkpoint.pp_degree - 1:
         checkpoint_sd[MODEL_KEY][
             WORD_EMBEDDINGS_FOR_HEAD_KEY] = meg_embedding_for_head_sd
+        checkpoint_sd[MODEL_KEY][WORD_EMBEDDINGS_KEY] = meg_embedding_sd
+        
 
     checkpoint_sd[ARGS_KEY] = ds_checkpoint.get_args()
     # Adjust specific fields

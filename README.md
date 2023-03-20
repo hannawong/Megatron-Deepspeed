@@ -43,7 +43,7 @@ pip install --global-option="--cpp_ext" --global-option="--cuda_ext" --no-cache 
 git clone https://github.com/microsoft/deepspeed
 cd deepspeed
 rm -rf build
-TORCH_CUDA_ARCH_LIST="7.0" DS_BUILD_CPU_ADAM=1 DS_BUILD_AIO=1 DS_BUILD_UTILS=1 pip install -e . --global-option="build_ext" --global-option="-j8" --no-cache -v --disable-pip-version-check
+TORCH_CUDA_ARCH_LIST="11.0" DS_BUILD_CPU_ADAM=1 DS_BUILD_AIO=1 DS_BUILD_UTILS=1 pip install -e . --global-option="build_ext" --global-option="-j8" --no-cache -v --disable-pip-version-check
 ```
 
 adjust `TORCH_CUDA_ARCH_LIST="7.0"` to the architecture of your NVIDIA GPU (or just remove it altogether if you are not sure how to find one).
@@ -364,6 +364,16 @@ on JZ we use a different launching command, see for example the end of  [tr1-13B
 ## Using any pretrained tokenizer
 
 Thanks to @sbmaruf, any HF pretrained tokenizer may be used instead of the Megatron-provided BERT/GPT/T5 tokenizers. You'll need to run preprocessing yourself (`tools/preprocess_data.py`), using `tokenizer-type=PretrainedFromHF` and `tokenizer-name-or-path=<your_tokenizer>`. For example, `python tools/preprocess_data.py --input ~/c4_en_train.jsonl --output-prefix c4_en_train --dataset-impl mmap --tokenizer-type PretrainedFromHF --tokenizer-name-or-path t5-small --workers 30 --append-eod`
+
+
+python tools/preprocess_data.py \
+    --input data/oscar-en-10k.jsonl \
+    --output-prefix data/meg-bloom-oscar-en-10k \
+    --dataset-impl mmap \
+    --tokenizer-type PretrainedFromHF \
+    --tokenizer-name-or-path bloomz_tokenizer \
+    --append-eod \
+    --workers 4
 
 ## Distributed Pretraining
 

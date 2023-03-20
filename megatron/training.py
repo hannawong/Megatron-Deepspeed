@@ -55,8 +55,21 @@ from megatron.schedules import forward_backward_pipelining_with_interleaving
 from megatron.utils import report_memory, flops_calculator
 from megatron.global_vars import codecarbon_tracker_start, codecarbon_tracker_stop
 from megatron.data.dataset_utils import analyze_data_prefix
+from megatron.text_generation_utils import generate_and_write_samples_unconditional,generate_samples_input_from_file
 
 import deepspeed
+
+from megatron.model.gpt_model import GPTModel
+from megatron.enums import PositionEmbeddingType
+def model_provider(pre_process=True, post_process=True):
+    """Build the model."""
+
+    print_rank_0('building GPT model ...')
+    model = GPTModel(num_tokentypes=0, parallel_output=False,
+                     pre_process=pre_process, post_process=post_process)
+
+    return model
+
 
 
 def print_datetime(string):
@@ -100,6 +113,35 @@ def pretrain(train_valid_test_dataset_provider,
                         args_defaults=args_defaults)
 
     args = get_args()
+    args.position_embedding_type = PositionEmbeddingType.alibi
+
+    args.deepspeed = False
+    args.no_load_rng = True
+    args.no_load_optim = True
+    args.consumed_train_samples = 0
+    args.consumed_valid_samples = 0
+    args.embed_layernorm = True
+    args.load = None
+    model = get_model(model_provider)
+    #args.load = "/data1/jiayu_xiao/project/wzh/Megatron-DeepSpeed/checkpoints/gpt_345M"
+    args.load = "/data1/jiayu_xiao/project/wzh/Megatron-DeepSpeed/bloom_megatron"
+    load_checkpoint(args,model, None, None)
+    
+    
+    args.genfile = "generated.txt"
+    args.num_samples = 5
+    args.temperature = 1.0
+    args.out_seq_length = 1024
+    args.top_p = 0.9
+    args.recompute = True
+    args.greedy = False
+    args.top_k = 5
+    #generate_and_write_samples_unconditional(model[0])
+    args.sample_input_file = "input.txt"
+    args.sample_output_file = "output.txt"
+    generate_samples_input_from_file(model[0])
+    exit()
+
 
     if found_kill_switch():
         print_datetime(f"Detected kill switch at {args.kill_switch_path}. Exiting")
@@ -138,6 +180,11 @@ def pretrain(train_valid_test_dataset_provider,
 
     # Model, optimizer, and learning rate.
     timers('model-and-optimizer-setup').start()
+    args.consumed_train_samples = 0
+    args.consumed_valid_samples = 0
+    args.comsumed_samples = 0
+    args.train_samples = None
+    args.train_iters = 100000
     model, optimizer, lr_scheduler = setup_model_and_optimizer(model_provider)
     args.parameters_in_billions_no_embedding = get_parameters_in_billions(model, exclude_embeddings=True)
     print_rank_0(f'estimated model parameters: {get_parameters_in_billions(model)}')
@@ -148,6 +195,7 @@ def pretrain(train_valid_test_dataset_provider,
 
     # Data stuff.
     timers('train/valid/test-data-iterators-setup').start()
+    args.consumed_train_samples = 0
     if args.virtual_pipeline_model_parallel_size is not None:
         all_data_iterators = [
             build_train_valid_test_data_iterators(train_valid_test_dataset_provider)
@@ -188,7 +236,11 @@ def pretrain(train_valid_test_dataset_provider,
         iteration = train(forward_step_func,
                           model, optimizer, lr_scheduler,
                           train_data_iterator, valid_data_iterator)
-    print_datetime('after training is done')
+    print_rank_0("finish training!!")
+
+
+
+    
 
     if args.do_valid:
         names = args.valid_weighted_split_names
@@ -211,7 +263,6 @@ def pretrain(train_valid_test_dataset_provider,
             evaluate_and_print_results(prefix, forward_step_func,
                                        iterator, model,
                                        0, True, data_group_name=name)
-
     codecarbon_tracker_stop()
 
 
@@ -447,7 +498,7 @@ def setup_model_and_optimizer(model_provider_func):
         # max time.
         torch.distributed.barrier()
         timers('load-checkpoint').start()
-        args.iteration = load_checkpoint(model, optimizer, lr_scheduler)
+        args.iteration = load_checkpoint(args, model, optimizer, lr_scheduler)
         torch.distributed.barrier()
         timers('load-checkpoint').stop()
         timers.log(['load-checkpoint'])
@@ -461,24 +512,7 @@ def setup_model_and_optimizer(model_provider_func):
     else:
         args.iteration = 0
 
-    # tp_rank = mpu.get_tensor_model_parallel_rank()
-    # pp_rank = mpu.get_pipeline_model_parallel_rank()
-    # dp_rank = mpu.get_data_parallel_rank()
-    # for n,p in model[0].named_parameters():
-    #     if 'word_embeddings.weight' not in n:
-    #         continue 
-    #     if tp_rank == 0 and pp_rank == 0:
-    #         print(f"{tp_rank=}{pp_rank=}{dp_rank=} bf16 {n=} {p[:10]=}")
-    #         if p._hp_mapping is not None:
-    #             hp = p._hp_mapping.hp_fragment
-    #             print(f'{tp_rank=}{pp_rank=}{dp_rank=} fp32 {n=} {hp[:10]=}')
-
-    #     if tp_rank == 0 and pp_rank == mpu.get_pipeline_model_parallel_world_size() - 1:
-    #         print(f"{tp_rank=}{pp_rank=}{dp_rank=} bf16 {n=} {p[:10]=}")
-    #         if p._hp_mapping is not None:
-    #             hp = p._hp_mapping.hp_fragment
-    #             print(f'{tp_rank=}{pp_rank=}{dp_rank=} fp32 {n=} {hp[:10]=}')
-
+    
 
     # We only support local DDP with multiple micro-batches.
     if len(model) > 1 or mpu.get_pipeline_model_parallel_world_size() > 1:
@@ -998,13 +1032,15 @@ def train(forward_step_func, model, optimizer, lr_scheduler,
                 sys.exit()
 
         # Exiting based on iterations
+        
         if args.exit_interval and iteration % args.exit_interval == 0:
             if not saved_checkpoint:
                 save_checkpoint_and_time(iteration, model, optimizer,
                                          lr_scheduler)
             torch.distributed.barrier()
             print_datetime('exiting program at iteration {}'.format(iteration))
-            sys.exit()
+            return iteration
+        
 
     return iteration
 
